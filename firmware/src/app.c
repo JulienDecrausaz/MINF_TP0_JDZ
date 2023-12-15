@@ -54,6 +54,14 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "app.h"
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include "system_config.h"
+#include "system_definitions.h"
+#include "Mc32DriverLcd.h"
+#include "Mc32DriverAdc.h"
+#include "bsp.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -87,6 +95,7 @@ APP_DATA appData;
 /* TODO:  Add any necessary callback functions.
 */
 
+
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Local Functions
@@ -97,6 +106,7 @@ APP_DATA appData;
 /* TODO:  Add any necessary local functions.
 */
 
+    uint8_t static State_Chen = 0;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -140,21 +150,51 @@ void APP_Tasks ( void )
     {
         /* Application's initial state. */
         case APP_STATE_INIT:
-        {
-            bool appInitialized = true;
-       
-        
-            if (appInitialized)
-            {
+        {      
+            //Init LCD
+            lcd_init();
+            lcd_bl_on();
             
-                appData.state = APP_STATE_SERVICE_TASKS;
-            }
+            //Ecriture LCD
+            lcd_gotoxy(1,1);
+            printf_lcd("TP0 LED + AD 2023-24");
+            lcd_gotoxy(1,2);
+            printf_lcd("Julien Decrausaz");
+            
+            //Toutes les LEDs OFF
+            BSP_LEDOff(BSP_LED_0);
+            BSP_LEDOff(BSP_LED_1);
+            BSP_LEDOff(BSP_LED_2);
+            BSP_LEDOff(BSP_LED_3);
+            BSP_LEDOff(BSP_LED_4);
+            BSP_LEDOff(BSP_LED_5);
+            BSP_LEDOff(BSP_LED_6);
+            BSP_LEDOff(BSP_LED_7);
+            
+            //Init de l'ADC
+            BSP_InitADC10();
+            //Timer 0 Start
+            DRV_TMR0_Start();
+       
+            APP_UpdateState(APP_STATE_WAIT);
             break;
+        }
+        
+        case APP_STATE_WAIT:
+        {
+            //ne rien faire ici
         }
 
         case APP_STATE_SERVICE_TASKS:
         {
-        
+            //Lecture des deux pots
+            appData.AdcRes = BSP_ReadAllADC();
+
+            //Affichage valeurs des deux pots
+            lcd_gotoxy(1,3);
+            printf_lcd("Ch0 %4d Ch1 %4d",appData.AdcRes.Chan0,appData.AdcRes.Chan1);
+
+            APP_UpdateState(APP_STATE_WAIT);
             break;
         }
 
@@ -170,7 +210,72 @@ void APP_Tasks ( void )
     }
 }
 
- 
+void APP_UpdateState(APP_STATES newState)
+{
+    appData.state = newState;       
+}
+
+void Chenillard (void)
+{
+    switch (State_Chen)
+    {
+        //LED0
+        case 0:
+            BSP_LEDOff(BSP_LED_7);
+            BSP_LEDOn(BSP_LED_0);
+            State_Chen = 1;
+            break;
+        
+        //LED1
+        case 1:
+            BSP_LEDOff(BSP_LED_0);
+            BSP_LEDOn(BSP_LED_1);
+            State_Chen = 2;
+            break;
+        
+        //LED2   
+        case 2:
+            BSP_LEDOff(BSP_LED_1);
+            BSP_LEDOn(BSP_LED_2);
+            State_Chen = 3;
+            break;
+        
+        //LED3
+        case 3:
+            BSP_LEDOff(BSP_LED_2);
+            BSP_LEDOn(BSP_LED_3);
+            State_Chen = 4;
+            break;    
+        
+        //LED4
+        case 4:
+            BSP_LEDOff(BSP_LED_3);
+            BSP_LEDOn(BSP_LED_4);
+            State_Chen = 5;
+            break;
+        
+        //LED5
+        case 5:
+            BSP_LEDOff(BSP_LED_4);
+            BSP_LEDOn(BSP_LED_5);
+            State_Chen = 6;
+            break;
+            
+        //LED6    
+        case 6:
+            BSP_LEDOff(BSP_LED_5);
+            BSP_LEDOn(BSP_LED_6);
+            State_Chen = 7;
+            break;
+        
+        //LED6    
+        case 7:
+            BSP_LEDOff(BSP_LED_6);
+            BSP_LEDOn(BSP_LED_7);
+            State_Chen = 0;
+            break;
+    }
+}
 
 /*******************************************************************************
  End of File
